@@ -458,6 +458,35 @@ export const COLOR_PALETTES = {
       grid_icon_color: null,
       ev_icon_idle: null,
       ev_icon_charging: null
+  },
+  'eok-custom-solar': {
+    name: 'eOk Custom Solar',
+    icon: '🎨',
+    description: 'eOk custom colar theme',
+    colors: {
+      solar: '#ff9800',
+      export: '#ffb74d',
+      import: '#5496c6',
+      self_usage: '#4db6ac',
+      ev_charge: '#81D4FA', 
+      battery_bar: '#f06292',
+      battery_charge: '#4caf50',
+      battery_discharge: '#f06292',
+      card_background: null,
+      stats_solar_background: null,
+      stats_export_background: null,
+      stats_import_background: null,
+      stats_usage_background: null,
+      stats_battery_background: null,
+      stats_ev_background: null,
+      stats_consumer_1_background: null,
+      stats_consumer_2_background: null,
+      grid_icon_import: null,
+      grid_icon_export: null,
+      grid_icon_idle: null,
+      grid_icon_color: null,
+      ev_icon_idle: null,
+      ev_icon_charging: null
     }
   }
 };
