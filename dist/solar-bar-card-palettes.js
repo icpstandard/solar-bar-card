@@ -458,6 +458,7 @@ export const COLOR_PALETTES = {
       grid_icon_color: null,
       ev_icon_idle: null,
       ev_icon_charging: null
+    }
   },
   'eok-custom-solar': {
     name: 'eOk Custom Solar',
