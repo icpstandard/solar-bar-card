@@ -3,7 +3,7 @@
 A real-time solar power distribution card for Home Assistant. Visualize how your solar energy flows between home consumption, grid export/import, battery storage, EV charging, and additional consumers — all in a single, intuitive bar chart.
 
 ![HACS Badge](https://img.shields.io/badge/HACS-Custom-orange.svg)
-![Version](https://img.shields.io/badge/Version-2.7.6-blue.svg)
+![Version](https://img.shields.io/badge/Version-2.9.0-blue.svg)
 [![GitHub Issues](https://img.shields.io/github/issues/0xAHA/solar-bar-card.svg)](https://github.com/0xAHA/solar-bar-card/issues)
 [![GitHub Stars](https://img.shields.io/github/stars/0xAHA/solar-bar-card.svg?style=social)](https://github.com/0xAHA/solar-bar-card)
 
@@ -23,7 +23,7 @@ A real-time solar power distribution card for Home Assistant. Visualize how your
 - **Stats tiles** — dynamic tile layout that adapts to your setup (solar, import/export, usage, battery, EV, additional consumers) with auto-scaling fonts on narrow screens
 - **Consumers** — EV charger and up to 2 additional power consumers (heat pump, pool, hot water, etc.) in a single config section
 - **Daily energy tracking** — connect daily kWh sensors for net import/export position with green/red indicator
-- **EV charger support** — automatic solar vs grid split, EV-ready indicator, potential capacity display
+- **EV charger support** — automatic solar vs grid split, dedicated EV circle icon with colored ring border, animated flow dots, potential capacity display
 - **Solar forecast** — Solcast auto-detection or custom forecast sensor with visual indicator
 - **6 color palettes** — plus full custom color support and per-tile background colors
 - **Custom labels and tap actions** — rename any element, configure per-element tap actions
@@ -102,8 +102,9 @@ show_legend: true
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `ev_charger_sensor` | string | `null` | Active EV charger power sensor. When set, the bar automatically splits EV charging into solar-powered (bright orange) vs grid-powered (darker orange) segments. |
-| `car_charger_load` | number | `0` | EV charger capacity in kW. When set, shows a grey dashed bar segment for potential/unused charging capacity. Also enables the EV-ready indicator icon when excess solar is available. |
+| `ev_charger_sensor` | string | `null` | Active EV charger power sensor. When set, shows a dedicated EV circle icon to the left of the solar bar (between house and battery). Grey when idle; colored ring border when excess solar is available; solid fill when actively charging. Animated flow dots connect when `show_energy_flow` is enabled. |
+| `ev_icon_color` | color | `null` | Color of the car icon symbol inside the EV circle. Defaults to the theme's primary text color for idle/ready states, and white when charging (solid fill). Set this when the default doesn't contrast well against your circle color — e.g., `"black"` for light-colored EV palette themes. |
+| `car_charger_load` | number | `0` | EV charger capacity in kW. When set, shows a grey dashed bar segment for potential/unused charging capacity. |
 | `ev_history_entity` | string | `null` | Daily EV energy sensor (kWh). Shows daily total on the EV stats tile when stats detail is enabled. |
 | `consumer_1_entity` | string | `null` | Power sensor for an additional consumer (e.g., heat pump, pool heater, hot water). Appears as a stats tile only — no bar segment. |
 | `consumer_1_name` | string | `null` | Display name for Consumer 1 (e.g., "Heat Pump", "Pool"). Defaults to "Consumer 1" if not set. |
@@ -140,7 +141,7 @@ show_legend: true
 | `weather_entity` | string | `null` | Weather entity or temperature sensor for the header display. Auto-detects entity type. |
 | `header_sensor_1` | object | `null` | Custom sensor in header. Format: `{entity: 'sensor.x', name: 'Label', icon: 'mdi:icon', icon_color: '#hex', unit: 'kWh'}`. Icon supports emoji or MDI. `icon_color` accepts hex, `"state"` (entity state as color), or `"attributes.rgb_color"` (entity attribute). |
 | `header_sensor_2` | object | `null` | Second custom header sensor. Same format as `header_sensor_1`. |
-| `show_stats` | boolean | `false` | Display power statistics tiles above the bar. Layout adapts dynamically: 3 core tiles (Solar, Import/Export, Usage) plus extras (Battery, EV, Consumers) on a second row when needed. |
+| `show_stats` | boolean | `false` | Display power statistics tiles above the bar. Layout adapts dynamically: 3 core tiles (Solar, Usage, Import/Export) plus extras (Battery, EV, Consumers) on a second row when needed. |
 | `show_stats_detail` | boolean | `true` | Show the detail row (3rd line) on stats tiles — daily kWh totals, net import/export position, battery SOC%. Set to `false` for a more compact card. |
 | `stats_detail_position` | string | `"below"` | Where to show the detail: `"below"` as a 3rd row, or `"inline"` next to the kW value separated by a slash (e.g., "1.2 kW / 12.5 kWh"). |
 | `show_net_indicator` | boolean | `true` | Show a colored dot on import/export tiles: green = net exporter for the day, red = net importer. Requires history entities. |
@@ -152,7 +153,9 @@ show_legend: true
 | `show_bar_values` | boolean | `true` | Show kW values and labels directly on bar segments. Hidden automatically when a segment is too narrow. |
 | `show_legend` | boolean | `true` | Display a color-coded legend below the bar showing all active power sources. |
 | `show_legend_values` | boolean | `true` | Show current kW values next to each legend item. |
-| `decimal_places` | number | `1` | Decimal places for all power values (1, 2, or 3). |
+| `power_unit` | string | `"kW"` | Unit for all live power values. Set to `"W"` to display values in Watts (e.g., 1500 W instead of 1.5 kW). History/daily totals remain in kWh. |
+| `show_power_unit` | boolean | `true` | Show or hide the unit suffix (kW / W) after every power value. Set to `false` for a more compact display where the unit is implied. |
+| `decimal_places` | number | `1` | Decimal places for all power values (1, 2, or 3). Ignored when `power_unit` is `"W"` (Watts are always shown as integers). |
 | `battery_soc_decimal_places` | number | `1` | Decimal places for battery SOC percentage (0, 1, or 2). Use 0 for batteries that only report whole percentages. |
 | `stats_border_radius` | number | `8` | Border radius for stats tiles in pixels. Increase to match rounded themes like Bubble Cards. |
 | `color_palette` | string | `"classic-solar"` | Color scheme. Options: `classic-solar`, `soft-meadow`, `ocean-sunset`, `garden-fresh`, `peachy-keen`, `cloudy-day`, `custom`. |
@@ -160,15 +163,45 @@ show_legend: true
 
 ### Custom Labels
 
+Labels can be plain text or full Home Assistant Jinja2 templates. When a value contains `{{`, it is evaluated server-side and updated reactively. Configure via YAML only (the visual editor does not expose label fields).
+
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `label_solar` | string | `null` | Custom label for Solar. Appears on stats tiles, legend, bar segments, and tooltips. Leave empty to use auto-detected language (11 languages supported). |
+| `label_solar` | string | `null` | Custom label for Solar. Accepts HA Jinja2 templates. Leave empty for auto-detected language translation. |
 | `label_import` | string | `null` | Custom label for Import. |
 | `label_export` | string | `null` | Custom label for Export. |
 | `label_usage` | string | `null` | Custom label for Usage. |
 | `label_battery` | string | `null` | Custom label for Battery. |
 | `label_ev` | string | `null` | Custom label for EV. |
 | `label_power_flow` | string | `null` | Custom label for the "Power Flow" bar heading. |
+
+**Template example:**
+
+```yaml
+custom_labels:
+  solar: "{{ states('sensor.inverter_model') }}"
+  export: "{{ 'Selling' if states('sensor.export_power')|float > 0 else 'Export' }}"
+```
+
+### Bar Segment Text
+
+Override the text shown inside each bar segment. Leave unset to use the default `value label` format. Tokens: `{value}` (formatted power), `{label}` (translated label), `{percent}` (% of bar), `{raw}` (numeric value only).
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `segment_text_solar_home` | string | `null` | Text for the Solar → Home segment. |
+| `segment_text_solar_ev` | string | `null` | Text for the Solar → EV segment. |
+| `segment_text_battery_charge` | string | `null` | Text for the Solar → Battery segment. |
+| `segment_text_export` | string | `null` | Text for the Export segment. |
+| `segment_text_ev_potential` | string | `null` | Text for the EV potential (pre-charge overlay) segment. |
+
+**Example:**
+
+```yaml
+segment_text_solar_home: "{value}"
+segment_text_export: "{percent} → grid"
+segment_text_battery_charge: "⚡ {raw}W"
+```
 
 ### Tap Actions
 

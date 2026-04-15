@@ -2,6 +2,70 @@
 
 <a href="https://www.buymeacoffee.com/0xAHA" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
 
+## v2.9.0 — Template Whisperer
+
+### New Features
+
+- **HA Jinja2 label templates**: Any label configurable via `custom_labels` or `label_*` YAML keys now accepts full Home Assistant Jinja2 template syntax. When a value contains `{{`, it is evaluated server-side via the HA websocket `render_template` API and updated reactively. Static label strings continue to work as before — no migration needed. The Custom Labels section has been removed from the visual editor (labels are YAML-only with template support); all previously configured labels remain fully compatible.
+
+  ```yaml
+  custom_labels:
+    solar: "{{ states('sensor.inverter_model') }}"
+    export: "{{ 'Selling' if states('sensor.export_power')|float > 0 else 'Export' }}"
+  ```
+
+- **Bar segment text templates** (`segment_text_*`): Each of the five bar segments now accepts a freeform text template with token substitution. Configure via YAML; leave unset to use the default `value label` format. Available tokens:
+
+  | Token | Description |
+  | --- | --- |
+  | `{value}` | Formatted power value (respects `power_unit` and `show_power_unit`) |
+  | `{label}` | Translated or custom label for this segment |
+  | `{percent}` | Segment width as a rounded percentage of the bar |
+  | `{raw}` | Raw numeric value (integer W or decimal kW, no unit suffix) |
+
+  Config keys and their segments:
+
+  | Key | Segment |
+  | --- | --- |
+  | `segment_text_solar_home` | Solar → Home (self-consumption) |
+  | `segment_text_solar_ev` | Solar → EV |
+  | `segment_text_battery_charge` | Solar → Battery |
+  | `segment_text_export` | Export |
+  | `segment_text_ev_potential` | EV potential (pre-charge overlay) |
+
+  ```yaml
+  segment_text_solar_home: "{value}"
+  segment_text_export: "{percent} → grid"
+  segment_text_battery_charge: "⚡ {raw}W"
+  ```
+
+---
+
+## v2.8.1 — The Meter Maid
+
+### Bug Fixes
+
+- **Import legend value mismatch**: The Import legend item was displaying `gridToHome` (grid power allocated to the house only), while the Import stats tile correctly displayed `totalGridImport` (the full raw sensor value). When an EV was charging from the grid, the legend showed a lower number — the difference being `gridToEv`. Both now show `totalGridImport`. As a bonus fix, the legend item will now also appear correctly when all grid import is going to the EV (previously it could vanish if `gridToHome` was 0).
+
+---
+
+## v2.8.0 — Live Wires & New Wheels
+
+### New Features
+
+- **EV circle icon** (`ev_charger_sensor`): The EV car icon has been moved out of the solar bar and replaced with a dedicated circular icon element on the **left side** of the bar — sitting between the house icon and battery bar, so all consumers are on the left and the flow direction stays consistent. State is shown via ring and fill: grey ring when idle; colored ring border when excess solar is ≥50% of EV load; brighter ring glow at ≥100%; and full solid fill in the EV color when actively charging. When `show_energy_flow` is enabled, animated dots connect solar and grid to the EV circle via the left bus, tracked as an independent flow group so EV state changes don't interrupt other animations.
+- **EV icon symbol color** (`ev_icon_color`): New config option to set the color of the car icon inside the EV circle. Useful when the default (theme primary text color) doesn't contrast well against the circle's background color. Overrides to white automatically when the circle is in solid charging state.
+- **Power unit selection** (`power_unit`): Choose between `kW` (default) and `W` to display all live power values in Watts. All value locations update consistently — tiles, bar segment labels, legend, bar capacity label, and tooltips.
+- **Show/hide unit suffix** (`show_power_unit`): Toggle the `kW` / `W` unit label after every power value. Defaults to `true`. Useful for very compact displays where the unit can be inferred.
+
+### Improvements
+
+- **Tile order: Solar → Usage → Export/Import**: Stats tiles are now ordered Solar | Usage | Export (or Import) — matching the natural left-to-right flow of the energy bar and aligning with the legend order.
+- **Legend order aligned with tiles**: Legend items now follow the same order as tiles — Solar, Usage, Export, Import, then EV and Battery. Previously EV and Battery appeared between Usage and Export.
+- **Export tile net indicator centering**: The net position dot (green/red) after the "Export"/"Import" label no longer shifts the label text off-centre. A hidden spacer of equal width is added to the left so the label text stays visually centred while the dot trails it on the right.
+
+---
+
 ## v2.7.6
 
 ### New Features
